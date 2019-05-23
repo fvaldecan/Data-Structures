@@ -1,0 +1,274 @@
+
+#include <iostream>
+#include "EasyBMP.h"
+using namespace std;
+
+const int MSIZE = 1000;
+
+// point class is used by queue class
+class point{
+   private:
+        int x; int y;
+
+   public:
+	point(int p, int q){
+	   x = p; y = q;
+    	}
+
+  	int getx(){
+	      return x;
+    	}
+
+  	int gety() {
+	      return y;
+   	}
+        
+ };
+
+class queue {
+
+ private:
+    	point* Q[MSIZE];
+  	int front, rear, size;
+
+ public:
+       queue() {
+       // initialize an empty queue
+       front = 0; rear = 0; size = 0;
+       for (int j=0; j < MSIZE; ++j)
+           Q[j] = 0;
+       }
+      
+       void insert(int n,int m){
+	 point* temp = new point(n,m);
+	 insert(temp);
+       }
+ 
+       void insert(point* x) {
+         if (size != MSIZE) {
+	   front++; size++;
+           if (front == MSIZE) front = 0;
+	      Q[front] = x;
+         }
+       } 
+
+       point del() {
+          if (size != 0) {
+	      rear++; if (rear == MSIZE) rear = 0;
+	      point temp(Q[rear]->getx(), Q[rear]->gety());
+	      size--;
+	    return temp;
+          }
+          else return point(-1,-1);
+       }
+
+       void print() {
+ 	   for (int j = 1; j <= size; ++j) {
+   	   	int i = front - j + 1;
+           	cout << "x = " << Q[i]->getx() << " y = " 
+					<< Q[i]->gety() << endl;
+           	}
+ 	   cout << "-----------------------" << endl;
+       }
+
+       bool isEmpty() {
+  	   return (size == 0);
+       }
+};
+
+void BFS (BMP &inImage, BMP &outImage, point *s, point *t, int count);
+void colorToGray(BMP & Output);
+int main(){//(int argc, char** argv){
+	//const char* inputfile;
+	//const char* outputfile;
+	BMP inputMaze;
+	BMP outputMaze;
+
+	/*if (argc > 1) {
+        inputfile = argv[1];
+    }
+    else inputfile = "maze.bmp";
+
+    if (argc > 2) outputfile = argv[2];
+    else outputfile = "out.bmp";*/
+
+	inputMaze.ReadFromFile("maze.bmp");
+
+	int height = inputMaze.TellHeight();
+	int width = inputMaze.TellWidth();
+
+	outputMaze.SetSize(width, height);
+
+	int sX = width/2;
+	int sY = height;
+
+	int tX = width/2;
+	int tY = height/2;
+	cout << sX <<" " << sY << "\n";
+	cout << tX << " " << tY << "\n";
+	point * s = new point(sX, sY);
+	point *t = new point(tX, tY);
+	int count;
+	colorToGray(inputMaze);
+	BFS(inputMaze, outputMaze, s, t, count);
+	//RangedPixelToPixelCopy(inputMaze, 0, width, height, 0, outputMaze, 0, 0);
+
+
+	/*outputMaze(sX -1, sY -1)->Red = 255;
+	outputMaze(sX -1, sY -1)->Blue = 0;
+	outputMaze(sX -1, sY -1)->Green = 0;
+
+	outputMaze(tX -1, tY -1)->Red = 255;
+	outputMaze(tX -1, tY -1)->Blue = 0;
+	outputMaze(tX -1, tY -1)->Green = 0;*/
+
+
+	//BFS (inputMaze, outputMaze, s, t, count);
+	outputMaze.WriteToFile("out.bmp");
+}
+void BFS (BMP &inImage, BMP &outImage, point *s, point *t, int count){
+
+	int width = inImage.TellWidth();
+	int height = inImage.TellHeight();
+	outImage.SetSize(width, height);
+	outImage.SetBitDepth(24);
+	RangedPixelToPixelCopy(inImage, 0, width, height, 0, outImage, 0, 0);
+	queue Q;
+	Q.insert(s);
+	count++;
+
+	bool visited[width][height]; //Visted 2D Array
+	bool blocked[width][height];//Blocked Pixels Array
+	int distance[width][height];//Distance Array
+	//point parent(0, 0);
+	point *parent[width][height]; //Parent Array
+	for (int i = 0; i < width; i++){
+		for(int j = 0; j <height; j++){
+			RGBApixel Temp = outImage.GetPixel(i,j);
+			if(Temp.Red < 20 && Temp.Green < 20 && Temp.Blue < 20)
+				blocked[i][j] = true;
+			else {
+				distance[i][j] = 0;
+				blocked[i][j] = false;
+				visited[i][j] = false;
+			}
+
+		}
+	}
+
+	int sX = s->getx();
+	int sY = s->gety();
+	//int u[] = distance[u->getx()][u->gety()];
+
+	int tX = t->getx();
+	int tY = t->gety();
+	//u = 0;
+	//d[u] = MaxInt for all other u
+	point *u = new point(0, 0);
+
+	distance[sX][sY] = 0;
+	visited[sX][sY] = true;
+
+	while((!Q.isEmpty()) && (!visited[tX][tY])) {
+		//Q.print();
+		*u = Q.del();
+
+		if ((!visited[u->getx()][u->gety() - 1]) &&
+			(!blocked[u->getx()][u->gety() - 1])) {
+			//Upper Neighbor vertex pixel
+			// if not visited and not out of bounds and not blocked by wall (black pixel)
+			point *vUp = new point(u->getx(), u->gety() - 1); //Set Upper Neighbor vertex coordinate
+			visited[u->getx()][u->gety() - 1] = true; // visited[Upper] = true;
+			distance[u->getx()][u->gety() - 1] = distance[u->getx()][u->gety()] + 1; // d[Upper] = d[u] +1
+			parent[u->getx()][u->gety()];// p[Upper] = u
+			Q.insert(vUp);//Q->insert(Upper)
+			count++;
+
+		} else if ((!visited[u->getx() - 1][u->gety()]) &&
+		(!blocked[u->getx() - 1][u->gety()])) {
+		    //Left pixel
+			point *vLeft = new point(u->getx() - 1, u->gety());
+			visited[u->getx() - 1][u->gety()] = true;
+			distance[u->getx() - 1][u->gety()] = distance[u->getx()][u->gety()] + 1;
+            parent[u->getx()][u->gety()];
+			Q.insert(vLeft);
+			count++;
+
+		} else if ( (!visited[u->getx()][u->gety() + 1]) &&
+                    (!blocked[u->getx()][u->gety() + 1])) {
+            //Down pixel
+            point *vDown = new point(u->getx(), u->gety() + 1);
+            visited[u->getx()][u->gety() + 1] = true;
+            distance[u->getx()][u->gety() + 1] = distance[u->getx()][u->gety()] + 1;
+            parent[u->getx()][u->gety()];
+            Q.insert(vDown);
+            count++;
+		} else if ((!visited[u->getx() +1][u->gety()]) &&
+                   !blocked[u->getx() + 1][u->gety()]) {
+            //Right pixel
+            point *vRight = new point(u->getx() + 1, u->gety());
+            visited[u->getx() + 1][u->gety()] = true;
+            distance[u->getx() + 1][u->gety()] = distance[u->getx()][u->gety()] + 1;
+            parent[u->getx()][u->gety()];
+            Q.insert(vRight);
+            count++;
+
+        }
+
+		//cout << distance[u->getx()][u->gety()];
+		//cout << count << "\n";
+		Q.print();
+	}
+	point *v = new point(tX, tY);//Set vertex v to destination coordinates
+	if(visited[tX][tY]){
+	    //if destination vertex was visited
+		while (v->getx() != sX && v->gety() != sY){
+
+		    outImage(v->getx(), v->gety())->Red = 255;
+			outImage(v->getx(), v->gety())->Blue = 0;
+			outImage(v->getx(), v->gety())->Green = 0;
+			int pX = parent[v->getx()][v->gety()]->getx();
+            int pY = parent[v->getx()][v->gety()]->gety();
+			point v(pX,pY);
+		}
+		//cout << distance[tX][tY] << " " << count;
+	}else {
+		cout << "No path from s to t\n";
+	}
+}
+void colorToGray(BMP & Output) {
+	int picWidth = Output.TellWidth();
+	int picHeight =Output.TellHeight();
+	Output.SetBitDepth(1); //compression happens here
+	for (int i = 0; i < picWidth-1; ++i)
+		for (int j = 0; j < picHeight-1; ++j) {
+			int col = 0.1* Output(i, j)->Blue + 0.6*Output(i,j)->Green +0.3* Output(i,j)->Red;
+			if (col > 127) {
+				Output(i,j)->Red = 255;
+				Output(i,j)->Blue = 255;
+				Output(i,j)->Green = 255;
+			}
+		}
+}
+/*
+int main() 
+{
+  cout << "A simple queue class test " << endl;
+  queue Q; 
+  point* p1 = new point(1,2); point* p2 = new point(3,7); point* p3 = new point(8,10);
+  cout << "Adding (1,2),  (3, 7), and (8, 10) to the queue " << endl;
+  Q.insert(p1); Q.insert(p2); Q.insert(p3);
+  cout << "Now the queue is" << endl; 
+  Q.print();
+  cout << "deleting from the queue" << endl; 
+  Q.del();
+  cout << "Queue after deletion is " << endl;
+  Q.print() ; Q.del(); 
+  cout << "Queue after another deletion is " << endl;
+  Q.print() ;
+  cout << "Queue after inserting (7, 12) is " << endl; 
+  p1 = new point(7,12);
+  Q.insert(p1); Q.print() ;
+  return 0;
+}*/
+ 
